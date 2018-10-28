@@ -9,10 +9,13 @@
       margin: 0;
     }
     video, canvas {
-      position: relative;
+      position: fixed;
       display: inline-block;
       top: 0;
+      right: 0;
       left: 0;
+      bottom: 0;
+      margin: auto;
     }
     canvas {
       z-index: 1;
@@ -25,100 +28,16 @@
   </style>
 </head>
 <body>
+  
+  <button onclick="window.start_app()">start</button>
+  
+  <canvas id="canvas"></canvas>
+  
+  <canvas id="diff" style="display:none;"></canvas>
+  
+  <video id="video" autoplay style="display:none;"></video>
 
-<canvas id="canvas"></canvas>
-<canvas id="diff"></canvas>
-<video id="video" autoplay></video>
-
-<script>
-  let video = document.getElementById('video');
-  let canvas = document.getElementById('canvas');
-  let diff = document.getElementById('diff');
-
-  let w = window.innerWidth * 0.5;
-  let h = window.innerHeight * 0.5;
-
-  video.width = w;
-  video.height = h;
-
-  let w_diff = Math.floor(w / 1);
-  let h_diff = Math.floor(h / 1);
-
-  diff.width = w_diff;
-  diff.height = h_diff;
-  canvas.width = w_diff,
-  canvas.height = h_diff;
-
-  let diff_context = diff.getContext('2d');
-  let capture_context = canvas.getContext('2d');
-
-  navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { 
-          width: w, 
-          height: h
-      }
-    })
-    .then( requested_stream => {
-      stream = requested_stream;
-
-      video.srcObject = stream;
-
-      setInterval( capture , 100);
-
-    })
-    .catch( error => {
-      console.log(error);
-    });
-
-  let second_run = false;
-
-  /* 
-    use each diff 'large' pixel as a point
-    build convex hull around those points
-
-    if not enough motion found, retain last convex hull (use hull.js)
-
-    add falling balls with basic collision
-  */
-
-
-  function capture () {
-    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
-    diff_context.globalCompositeOperation = 'difference';
-    diff_context.drawImage(video, 0, 0, w_diff, h_diff);
-
-    let image = diff_context.getImageData(0, 0, w_diff, h_diff);
-
-    if (second_run) {
-      let diff = process_image(image);
-
-      capture_context.putImageData(image, 0, 0);
-    }
-    
-    // draw current capture normally over diff, ready for next time
-    diff_context.globalCompositeOperation = 'source-over';
-    diff_context.drawImage(video, 0, 0, w_diff, h_diff);
-
-    second_run = true;
-  }
-
-  function process_image (image) {
-    var rgba = image.data;
-    let threshold = 32;
-
-    for (var i = 0; i < rgba.length; i += 4) {
-      
-      var pixelDiff = rgba[i] * 0.3 + rgba[i + 1] * 0.6 + rgba[i + 2] * 0.1;
-      
-      var normalized = Math.min(255, pixelDiff * (255 / threshold));
-      
-      rgba[i] = 0;
-      rgba[i + 1] = normalized;
-      rgba[i + 2] = 0;
-    }
-  }
-
-</script>
+  <script src="./hull.js"></script>
+  <script src="./main.js"></script>
 </body>
 </html> 
