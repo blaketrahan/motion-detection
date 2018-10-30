@@ -7,9 +7,9 @@ window.start_app = (function() {
 
       160 works well
     */
-    w: 500,
+    w: 160,
 
-    threshold: 50, // rgba 0-255
+    threshold: 100, // rgba 0-255
 
     /*
       Capture interval in ms
@@ -20,7 +20,7 @@ window.start_app = (function() {
     */
     interval: 100, // time ms
 
-    min_pts: 200, // minimum_length
+    min_pts: 100, // minimum_length
 
     /*
       0 - Infinity
@@ -28,16 +28,16 @@ window.start_app = (function() {
       80 = mostly convex
       20 = concave
     */
-    concavity: 90, 
+    concavity: Infinity, 
 
     /*
       Amount of each color to use in calculation
       Can isolate skin tones, environment, etc
       Lower values reduce noise
     */
-    r: 0.1,
-    g: 0.9,
-    b: 0.6,
+    r: 0.9,
+    g: 0.8,
+    b: 0.3,
   };
 
   // Just preparing HTML
@@ -49,15 +49,19 @@ window.start_app = (function() {
   let w = window.innerWidth;
   let h = window.innerHeight;
 
-  let w_diff = Math.floor( w * (control.w / w) );
-  let h_diff = Math.floor( h * (control.w / w) );
+  let scale_down = control.w / w;
+  let scale_up = w / control.w;
+
+  let w_diff = Math.floor( w * scale_down );
+  let h_diff = Math.floor( h * scale_down );
 
   video.width = w;
   video.height = h;
+  canvas.width = w;
+  canvas.height = h;
+
   diff.width = w_diff;
   diff.height = h_diff;
-  canvas.width = w_diff;
-  canvas.height = h_diff;
 
   // Get interface for rendering
   let ctx_difference = diff.getContext('2d');
@@ -92,7 +96,6 @@ window.start_app = (function() {
   let num_runs = false;
 
   function capture () {
-    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
     ctx_difference.globalCompositeOperation = 'difference';
     ctx_difference.drawImage(video, 0, 0, w_diff, h_diff);
 
@@ -101,13 +104,14 @@ window.start_app = (function() {
     if (num_runs) {
       let diff = process_image(image);
 
-      ctx_normal.putImageData(image, 0, 0);
-
+      // ctx_normal.putImageData(image, 0, 0);
+      ctx_normal.clearRect(0, 0, w, h);
       // draw convex hull
       let empty = (motion_pts.length < control.min_pts);
 
       if (!empty) {
         convex_hull = hull(motion_pts, control.concavity);
+        console.log(convex_hull.length);
       }
       ctx_normal.beginPath();
 
@@ -154,8 +158,8 @@ window.start_app = (function() {
       if (difference > control.threshold) {
         motion_pts.push(
           [
-            p % w_diff,
-            Math.floor(p / w_diff)
+            (p % w_diff) * scale_up,
+            Math.floor(p / w_diff) * scale_up
           ]
         );
       }
